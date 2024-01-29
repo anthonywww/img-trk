@@ -200,9 +200,107 @@ server.get("/admin/:command", function(req, res, next) {
 	if (params.command === "stats") {
 		const limit = Math.min(Math.max(query.limit == undefined ? 50 : parseInt(query.limit), 1), 255);
 		const page = Math.min(Math.max(query.page == undefined ? 1 : parseInt(query.page), 1), 100000);
-		const stmt = db.prepare("SELECT * FROM hits ORDER BY id DESC LIMIT ? OFFSET ?");
-		const results = stmt.all(limit, (page-1) * limit);
-		
+		const before = Math.min(Math.max(query.before == undefined ? 0 : parseInt(query.before), 0), Number.MAX_VALUE);
+		const after = Math.min(Math.max(query.after == undefined ? 0 : parseInt(query.after), 0), Number.MAX_VALUE);
+
+		let filters = {};
+		let results = [];
+
+		// FIXME: messy
+		if (query.category) {
+			filters["category"] = query.category.trim().slice(0, 32);
+			if (query.ip_address) {
+				filters["ip_address"] = query.ip_address.trim().slice(0, 45);
+				if (before > 0) {
+					filters["before"] = before;
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date <= ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["before"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date <= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["before"], limit, (page-1) * limit);
+					}
+				} else {
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], limit, (page-1) * limit);
+					}
+				}
+			} else {
+				if (before > 0) {
+					filters["before"] = before;
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND date <= ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["before"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND date <= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["before"], limit, (page-1) * limit);
+					}
+				} else {
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], limit, (page-1) * limit);
+					}
+				}
+			}
+		} else {
+			if (query.ip_address) {
+				filters["ip_address"] = query.ip_address.trim().slice(0, 45);
+				if (before > 0) {
+					filters["before"] = before;
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date <= ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["before"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date <= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["before"], limit, (page-1) * limit);
+					}
+				} else {
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE category = ? AND ip_address = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["category"], filters["ip_address"], limit, (page-1) * limit);
+					}
+				}
+			} else {
+				if (before > 0) {
+					filters["before"] = before;
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE date <= ? AND date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["before"], filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits WHERE date <= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["before"], limit, (page-1) * limit);
+					}
+				} else {
+					if (after > 0) {
+						filters["after"] = after;
+						const stmt = db.prepare("SELECT * FROM hits WHERE date >= ? ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(filters["after"], limit, (page-1) * limit);
+					} else {
+						const stmt = db.prepare("SELECT * FROM hits ORDER BY id DESC LIMIT ? OFFSET ?");
+						results = stmt.all(limit, (page-1) * limit);
+					}
+				}
+			}
+		}
+
+
 		let data = [];
 
 		results.forEach((row) => {
@@ -223,8 +321,10 @@ server.get("/admin/:command", function(req, res, next) {
 		});
 
 		res.send({
-			"status": "ok",
-			"data": data
+			status: "ok",
+			filters: filters,
+			results_count: results.length,
+			results: data
 		});
 		return next();
 
@@ -245,8 +345,8 @@ server.get("/admin/:command", function(req, res, next) {
 	} else {
 		res.status(404);
 		res.send({
-			"status": "error",
-			"message": "not found"
+			status: "error",
+			message: "not found"
 		});
 		return next();
 	}
@@ -255,8 +355,8 @@ server.get("/admin/:command", function(req, res, next) {
 
 server.on("NotFound", function (req, res, err, cb) {
 	res.send({
-		"status": "error",
-		"message": "not found"
+		status: "error",
+		message: "not found"
 	});
 	return cb();
 });

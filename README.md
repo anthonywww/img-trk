@@ -67,9 +67,13 @@ docker run --rm \
     	- Query Params:
     	- `page` = Page # to navigate (0-100000)
     	- `limit` = Max results per page, shows 50 by default (0-255)
+    	- `category` = Filter for a specific category (0-32)
+    	- `ip_address` = Filter for a specific IP address (0-45)
+    	- `before` = Before a specific UNIX time
+    	- `after` = After a specific UNIX time
 
 Examples:
 - Generate a semi-transparent greenish yellow rectangle as `neon_glass.png`: http://localhost:8080/image/neon_glass.png?w=100&h=30&c=2164195456
 - Generate a 1x1 transparent pixel: http://localhost:8080/image/logo.png
 - Get RGBA32 from `red` `green` and `blue`: http://localhost:8080/admin/color?key=test&red=128&green=255&blue=0&alpha=128
-- Show paginated results: http://localhost:8080/admin/stats?key=test&limit=5&page=0
+- Show paginated results: http://localhost:8080/admin/stats?key=test&limit=5&page=1
