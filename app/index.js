@@ -27,7 +27,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS hits (
 db.exec(`CREATE INDEX IF NOT EXISTS hits_index ON hits (date, category, ip_address);`);
 
 // Environment variables
-const proxy = (process.env.PROXY === "true");
+const proxy = (process.env.BEHIND_PROXY === "true");
 const admin_password = process.env.ADMIN_PASSWORD;
 
 // Restify server
