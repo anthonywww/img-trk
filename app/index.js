@@ -199,11 +199,10 @@ server.get("/admin/:command", function(req, res, next) {
 	// Handle command
 	if (params.command === "stats") {
 		const limit = Math.min(Math.max(query.limit == undefined ? 50 : parseInt(query.limit), 1), 255);
-		const page = Math.min(Math.max(query.page == undefined ? 0 : parseInt(query.page), 0), 100000);
-
+		const page = Math.min(Math.max(query.page == undefined ? 1 : parseInt(query.page), 1), 100000);
 		const stmt = db.prepare("SELECT * FROM hits ORDER BY id DESC LIMIT ? OFFSET ?");
+		const results = stmt.all(limit, (page-1) * limit);
 		
-		const results = stmt.all(limit, page * limit);
 		let data = [];
 
 		results.forEach((row) => {
