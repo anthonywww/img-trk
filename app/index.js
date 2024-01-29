@@ -191,7 +191,7 @@ server.get("/admin/:command", function(req, res, next) {
 		res.status(403);
 		res.send({
 			"status": "error",
-			"message": "unauthorized " + query.key + admin_password
+			"message": "unauthorized"
 		});
 		return next();
 	}
