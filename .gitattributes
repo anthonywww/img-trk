@@ -1,0 +1,7 @@
+# GitHub Linguist Coloring
+*.py linguist-language=Python
+*.js linguist-language=JavaScript
+*.json linguist-language=JSON
+*.json.example linguist-language=JSON
+*.yaml linguist-language=YAML
+*.yaml.example linguist-language=YAML

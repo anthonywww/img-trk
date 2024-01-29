@@ -1,0 +1,4 @@
+app/
+data/
+node_modules/
+*.db
